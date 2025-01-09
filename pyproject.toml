@@ -6,7 +6,9 @@ authors = ["Ilia Kaziamov <kaziamov@outlook.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.10"
+django = "4.2"
+django-bootstrap4 = "24.4"
 
 
 [build-system]

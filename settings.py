@@ -1,0 +1,1 @@
+TEST_DB_URL = "postgresql://postgres:postgres@192.168.4.30:5432/test_db"

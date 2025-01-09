@@ -1,7 +1,9 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-conn = psycopg2.connect('postgresql://tirion:secret@localhost:5432/tirion')
+from settings import TEST_DB_URL
+
+conn = psycopg2.connect(TEST_DB_URL)
 
 
 # BEGIN (write your solution here)
@@ -24,47 +26,47 @@ def add_comment(conn, comment):
     conn.commit()
     return comment_id
 
+
 def get_latest_posts(conn, n):
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""
-            SELECT
-                p.*,
-                c.id as comment_id,
-                c.author_id as comment_author_id,
-                c.content as comment_content,
-                c.created_at as comment_created_at
-            FROM posts p
-            LEFT JOIN comments c ON p.id = c.post_id
-            WHERE p.id IN (
-                SELECT id FROM posts
-                ORDER BY created_at DESC
-                LIMIT %s
-            )
-        """, (n,))
+    query = """
+        SELECT 
+            posts.id AS post_id, 
+            posts.title, 
+            posts.content, 
+            posts.author_id AS post_author_id, 
+            posts.created_at AS post_created_at,
+            comments.id AS comment_id,
+            comments.author_id AS comment_author_id,
+            comments.content AS comment_content,
+            comments.created_at AS comment_created_at
+        FROM posts
+        LEFT JOIN comments ON posts.id = comments.post_id
+        ORDER BY posts.created_at DESC, comments.created_at ASC
+        LIMIT %s;
+    """
 
-        rows = cur.fetchall()
+    with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        cursor.execute(query, (n,))
+        rows = cursor.fetchall()
 
-        posts_dict = {}
-        for row in rows:
-            post_id = row['id']
-            if not posts_dict.get(post_id):
-                posts_dict[post_id] = {
-                    'id': row['id'],
-                    'title': row['title'],
-                    'content': row['content'],
-                    'author_id': row['author_id'],
-                    'created_at': row['created_at'],
-                    'comments': []
-                }
-
-            if row.get('comment_id'):
-                posts_dict[post_id]['comments'].append({
-                    'id': row['comment_id'],
-                    'author_id': row['comment_author_id'],
-                    'content': row['comment_content'],
-                    'created_at': row['comment_created_at']
-                })
-
-        return list(posts_dict.values())
-
+    posts = {}
+    for row in rows:
+        post_id = row['post_id']
+        if post_id not in posts:
+            posts[post_id] = {
+                'id': post_id,
+                'title': row['title'],
+                'content': row['content'],
+                'author_id': row['post_author_id'],
+                'created_at': row['post_created_at'],
+                'comments': []
+            }
+        if row['comment_id']:
+            posts[post_id]['comments'].append({
+                'id': row['comment_id'],
+                'author_id': row['comment_author_id'],
+                'content': row['comment_content'],
+                'created_at': row['comment_created_at']
+            })
+    return list(posts.values())
 # END

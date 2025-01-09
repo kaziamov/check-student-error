@@ -2,10 +2,12 @@ import pytest
 import psycopg2
 import psycopg2.extras
 
+from settings import TEST_DB_URL
+
 
 @pytest.fixture(scope="session")
 def db_connection():
-    conn = psycopg2.connect("postgresql://tirion:secret@localhost:5432/tirion")
+    conn = psycopg2.connect(TEST_DB_URL)
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED)
     yield conn
     conn.close()
@@ -14,8 +16,26 @@ def db_connection():
 @pytest.fixture(autouse=True)
 def reset_table(db_connection):
     with db_connection.cursor() as cur:
-        cur.execute("TRUNCATE TABLE posts RESTART IDENTITY;")
-        cur.execute("TRUNCATE TABLE comments RESTART IDENTITY;")
+        cur.execute("""
+        DROP TABLE IF EXISTS posts;
+        DROP TABLE IF EXISTS comments;
+        
+        CREATE TABLE posts (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            content TEXT NOT NULL,
+            author_id INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE comments (
+            id SERIAL PRIMARY KEY,
+            post_id INTEGER NOT NULL,
+            author_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
     db_connection.commit()
 
 

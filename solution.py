@@ -42,11 +42,11 @@ def get_latest_posts(conn, n):
         FROM posts
         LEFT JOIN comments ON posts.id = comments.post_id
         ORDER BY posts.created_at DESC, comments.created_at ASC
-        LIMIT %s;
+        LIMIT %s; -- error here beacuse this limit for comments not for posts. how to fix: https://stackoverflow.com/questions/38108747/postgresql-join-with-limit
     """
 
     with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-        cursor.execute(query, (n,))
+        cursor.execute(query)
         rows = cursor.fetchall()
 
     posts = {}
